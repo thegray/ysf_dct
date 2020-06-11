@@ -51,8 +51,11 @@
                 <p class="lead my-4">
                     <strong>Result Summary</strong>
                 </p>
-                <div th:if="${message}">
-                    <p th:text="${message}" class="text-info"></p>
+                <div th:if="${upload_message}">
+                    <p th:text="${upload_message}" class="text-info"></p>
+                </div>
+                <div th:if="${output_message}">
+                    <p th:text="${output_message}" class="text-info"></p>
                 </div>
             </div>
         </div>

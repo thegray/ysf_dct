@@ -1,20 +1,28 @@
 package ysf.app.dct.lib;
 
 import boofcv.io.image.ConvertBufferedImage;
-import boofcv.struct.image.*;
+import boofcv.struct.image.GrayF32;
+import boofcv.struct.image.Planar;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import ysf.app.dct.util.ImageUtils;
 
 import javax.imageio.ImageIO;
-import javax.xml.crypto.Data;
 import java.awt.*;
-import java.awt.color.ColorSpace;
-import java.awt.image.*;
-import java.io.*;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBuffer;
+import java.awt.image.Raster;
+import java.awt.image.WritableRaster;
+import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Random;
 
-import ysf.app.dct.lib.DCT2D;
-
+@Service
 public class DCT {
+
+    @Autowired
+    ImageUtils imgUtils;
 
     public static final double PI = 3.1415926535897931;
 
@@ -183,7 +191,8 @@ public class DCT {
 
         out = new BufferedImage(width, height, imagetype);
         WritableRaster raster = out.getRaster();
-        raster.setPixels(raster.getMinX(), raster.getMinY(), raster.getWidth(), raster.getHeight(), outsrc2);
+        raster.setPixels(raster.getMinX(), raster.getMinY(), raster.getWidth(), raster.getHeight(), outsrc);
+//        raster.setPixels(raster.getMinX(), raster.getMinY(), raster.getWidth(), raster.getHeight(), outsrc2);
 
         File pwd = new File(".");
         File outfile = File.createTempFile("aaaaa", ".png", pwd);
@@ -218,39 +227,41 @@ public class DCT {
 
     /* ------------------------------------------------------------------ */
 
-    public Planar<GrayF32> ColorTransform(BufferedImage in) throws IOException {
-        System.out.println("image input type: " + in.getType());
+    public Planar<GrayF32> ColorTransform(Planar<GrayF32> preparedImg, int flag) {
 
-        int w = in.getWidth();
-        int h = in.getHeight();
+        if ((flag != 1) && (flag != -1)) {
+            System.out.println("[COLOR TRANSFORM] Flag should be 1 or -1");
+            return null;
+        }
 
-        Planar<GrayF32> preparedImg = new Planar<>(GrayF32.class, w, h, 3);
-        ConvertBufferedImage.convertFrom(in, preparedImg, true);
-        Planar<GrayF32> decorrelated = new Planar<>(GrayF32.class, w, h, 3);
+        int w = preparedImg.getWidth();
+        int h = preparedImg.getHeight();
+
+        Planar<GrayF32> calcImg = new Planar<>(GrayF32.class, w, h, 3);
 
         for (int r = 0; r < preparedImg.getHeight(); r++) {
             for (int c = 0; c < preparedImg.getWidth(); c++) {
                 float temp_r = preparedImg.getBand(0).get(c, r);
                 float temp_g = preparedImg.getBand(1).get(c, r);
                 float temp_b = preparedImg.getBand(2).get(c, r);
-                float temp_dr = (temp_r * DCTbasis3x3[0][0]) + (temp_g * DCTbasis3x3[0][1]) + (temp_b * DCTbasis3x3[0][2]);
-                float temp_dg = (temp_g * DCTbasis3x3[1][0]) + (temp_g * DCTbasis3x3[1][1]) + (temp_b * DCTbasis3x3[1][2]);
-                float temp_db = (temp_b * DCTbasis3x3[2][0]) + (temp_g * DCTbasis3x3[2][1]) + (temp_b * DCTbasis3x3[2][2]);
-                decorrelated.getBand(0).set(c, r, temp_dr);
-                decorrelated.getBand(1).set(c, r, temp_dg);
-                decorrelated.getBand(2).set(c, r, temp_db);
+                float temp_dr, temp_dg, temp_db;
+                if (flag == 1) {
+                    temp_dr = (temp_r * DCTbasis3x3[0][0]) + (temp_g * DCTbasis3x3[0][1]) + (temp_b * DCTbasis3x3[0][2]);
+                    temp_dg = (temp_g * DCTbasis3x3[1][0]) + (temp_g * DCTbasis3x3[1][1]) + (temp_b * DCTbasis3x3[1][2]);
+                    temp_db = (temp_b * DCTbasis3x3[2][0]) + (temp_g * DCTbasis3x3[2][1]) + (temp_b * DCTbasis3x3[2][2]);
+                } else {
+                    temp_dr = (temp_r * DCTbasis3x3[0][0]) + (temp_g * DCTbasis3x3[1][0]) + (temp_b * DCTbasis3x3[2][0]);
+                    temp_dg = (temp_g * DCTbasis3x3[0][1]) + (temp_g * DCTbasis3x3[1][1]) + (temp_b * DCTbasis3x3[2][1]);
+                    temp_db = (temp_b * DCTbasis3x3[0][2]) + (temp_g * DCTbasis3x3[1][2]) + (temp_b * DCTbasis3x3[2][2]);
+                }
+
+                calcImg.getBand(0).set(c, r, temp_dr);
+                calcImg.getBand(1).set(c, r, temp_dg);
+                calcImg.getBand(2).set(c, r, temp_db);
             }
         }
 
-        return decorrelated;
-
-//        BufferedImage out = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
-//        ConvertBufferedImage.convertTo(decorrelated, out,true);
-//
-//        File pwd = new File("./output");
-//        File outfile = File.createTempFile("out_", ".png", pwd);
-//        ImageIO.write(out, "PNG", outfile);
-//        System.out.println("done: " + outfile.getAbsolutePath());
+        return calcImg;
     }
 
     private void Image2Patches(Planar<GrayF32> decImg, float[][][][] patches, int width_p, int height_p) {
@@ -260,28 +271,88 @@ public class DCT {
         int channel = decImg.getNumBands();
 
         int counter_patch = 0;
-        for (int j = 0; j < height - height_p + 1; j ++)
-            for (int i = 0; i < width - width_p + 1; i ++) {
-                for (int kp = 0; kp < channel; kp++)
-                    for (int jp = 0; jp < height_p; jp ++)
-                        for (int ip = 0; ip < width_p; ip ++) {
-                            patches[counter_patch][kp][jp][ip] =
-                                    // mesti di cek ulang, apakah posisinya sudah betul
-                                    decImg.getBand(channel).get(i+ip, j+jp);
+        // loop over each patch
+        for (int j = 0; j < height - height_p + 1; j++) {
+            for (int i = 0; i < width - width_p + 1; i++) {
+                // loop over each pixels in patch
+                for (int kp = 0; kp < channel; kp++) {
+                    for (int jp = 0; jp < height_p; jp++) {
+                        for (int ip = 0; ip < width_p; ip++) {
+                            patches[counter_patch][kp][jp][ip] = decImg.getBand(kp).get(i + ip, j + jp);
                         }
-                counter_patch ++;
+                    }
+                }
+                counter_patch++;
             }
+        } // end of loop patches
+
     }
 
-    private void Patches2Image() {
-        System.out.println("Patches2Image");
+    private Planar<GrayF32> Patches2Image(float[][][][] patches, int width, int height, int channel, int width_p, int height_p) {
+
+        Planar<GrayF32> img = new Planar<>(GrayF32.class, width, height, 3);
+        Planar<GrayF32> weight = new Planar<>(GrayF32.class, width, height, 3);
+        // init the array
+        for (int j = 0; j < height; j++) {
+            for (int i = 0; i < width; i++) {
+                for (int c = 0; c < 3; c++) {
+                    img.getBand(c).set(i, j, 0);
+                    weight.getBand(c).set(i, j, 0);
+                }
+            }
+        }
+
+        int counter_patch = 0;
+        // Loop over the patch positions
+        for (int h = 0; h < height - height_p + 1; h++) {
+            for (int w = 0; w < width - width_p + 1; w++) {
+                // loop over the pixels in the patch
+                for (int cp = 0; cp < channel; cp++) {
+                    for (int y = 0; y < height_p; y++) {
+                        for (int x = 0; x < width_p; x++) {
+
+                            float temp = img.getBand(cp).get(w + x, h + y);
+                            temp += patches[counter_patch][cp][y][x];
+                            img.getBand(cp).set(w + x, h + y, temp);
+
+                            float wtemp = weight.getBand(cp).get(w + x, h + y);
+                            wtemp += 1;
+                            weight.getBand(cp).set(w + x, h + y, wtemp);
+                        }
+                    }
+                }
+                counter_patch++;
+            }
+        } // end of patches loop
+
+        // Normalize by the weight
+        for (int j = 0; j < height; j++) {
+            for (int i = 0; i < width; i++) {
+                for (int c = 0; c < 3; c++) {
+                    float temp = img.getBand(c).get(i, j);
+                    int div = (int) weight.getBand(c).get(i, j);
+                    if (div == 0) {
+                        System.out.printf("[Patches2Image][Normalization] DIVIDER IS ZERO c:%d x:%d y:%d \n", c, i, j);
+                    } else {
+                        float res = temp / div;
+                        img.getBand(c).set(i, j, res);
+                    }
+                }
+            }
+        }// end of normalize loop
+
+        return img;
     }
 
-    public void DCTdenoising(byte[] img) throws IOException {
+    public BufferedImage DCTdenoising(BufferedImage originalImage) throws IOException {
 
         int dct_size_flag = 0;
         float sigma = 30;
+
+        // TODO: support 1 channel image
         int channel = 3;
+
+        float THRESHOLD = 3 * sigma;
 
         // DCT window size
         int width_p, height_p;
@@ -292,10 +363,6 @@ public class DCT {
             width_p = 8;
             height_p = 8;
         }
-
-        // Get a BufferedImage object from a byte array
-        InputStream in = new ByteArrayInputStream(img);
-        BufferedImage originalImage = ImageIO.read(in);
 
         // Get image dimensions
         int height = originalImage.getHeight();
@@ -314,17 +381,17 @@ public class DCT {
 //            }
 //        }
         float[][][][] patches = new float[num_patches][channel][height_p][width_p];
-        System.out.println(Arrays.toString(patches));
+//        System.out.println(Arrays.toString(patches));
 
+        // TODO: support 1 channel image
         if (channel == 3) {
 
         }
 
+        Planar<GrayF32> preparedImg = new Planar<>(GrayF32.class, width, height, 3);
+        ConvertBufferedImage.convertFrom(originalImage, preparedImg, true);
 
-        double[][] dct = new double[height][width];
-        double ci, cj, dct1, sum;
-
-        Planar<GrayF32> decImage = this.ColorTransform(originalImage);
+        Planar<GrayF32> decImage = this.ColorTransform(preparedImg, 1);
 
         this.Image2Patches(decImage, patches, width_p, height_p);
 
@@ -343,53 +410,38 @@ public class DCT {
         }
 
         // Thresholding
+        for (int p = 0; p < num_patches; p ++) {
+            for (int k = 0; k < channel; k++) {
+                for (int j = 0; j < height_p; j++) {
+                    for (int i = 0; i < width_p; i++) {
+                        if (Math.abs(patches[p][k][j][i]) < THRESHOLD) {
+                            patches[p][k][j][i] = 0;
+                        }
+                    }
+                }
+            }
+        } // end of thresholding loop
 
         // 2D DCT inverse
+        for (int p = 0; p < num_patches; p ++) {
+            for (int k = 0; k < channel; k ++) {
+                if (flag_dct16x16 == 0) {
+                    DCT2D.CalculateDCT2D(patches[p][k], -1);
+                } else {
+                    DCT2D.CalculateDCT2D(patches[p][k], -1);
+                }
+            }
+        }
 
+        // Decompose the image into patches
+        Planar<GrayF32> patches2ImageResult = this.Patches2Image(patches, width, height, channel, width_p, height_p);
 
+        // inverse 3-point DCT transform in the color dimension
+        Planar<GrayF32> finalResult = this.ColorTransform(patches2ImageResult, -1);
 
+        // testing
+//        Planar<GrayF32> finalResult = this.ColorTransform(decImage, -1);
 
-
-
-//        for (int i = 0; i < height; i++) {
-//            for (int j = 0; j < width; j++) {
-//                Color c = new Color(originalImage.getRGB(j, i));
-//                int r = c.getRed();
-//                int g = c.getGreen();
-//                int b = c.getBlue();
-//                int a = c.getAlpha();
-////                System.out.printf("(j, i): (%d, %d), r: %d, g: %d, b: %d, a: %d \n", j,i,r,g,b,a);
-//            }
-//        }
-
-        // Get a BufferedImage object from a byte array
-//        InputStream in = new ByteArrayInputStream(image);
-//        BufferedImage originalImage = ImageIO.read(in);
-//
-//        // Get image dimensions
-//        int height = originalImage.getHeight();
-//        int width = originalImage.getWidth();
-//
-//        // The image is already a square
-//        if (height == width) {
-//            return originalImage;
-//        }
-//
-//        // Compute the size of the square
-//        int squareSize = (height > width ? width : height);
-//
-//        // Coordinates of the image's middle
-//        int xc = width / 2;
-//        int yc = height / 2;
-//
-//        // Crop
-//        BufferedImage croppedImage = originalImage.getSubimage(
-//                xc - (squareSize / 2), // x coordinate of the upper-left corner
-//                yc - (squareSize / 2), // y coordinate of the upper-left corner
-//                squareSize,            // widht
-//                squareSize             // height
-//        );
-//
-//        return croppedImage;
+        return imgUtils.PlanarToBufImage(finalResult);
     }
 }
