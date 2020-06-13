@@ -26,6 +26,9 @@ public class DCT {
 
     public static final double PI = 3.1415926535897931;
 
+    public static final int BASE8 = 8;
+    public static final int BASE16 = 16;
+
     private static final float[][] DCTbasis3x3 =
             {
                     {
@@ -344,24 +347,29 @@ public class DCT {
         return img;
     }
 
-    public BufferedImage DCTdenoising(BufferedImage originalImage) throws IOException {
+    /* ------------------------------------- MAIN DCT FUNCTION ------------------------------------------- */
 
-        int dct_size_flag = 0;
-        float sigma = 30;
+    public BufferedImage DCTdenoising(BufferedImage originalImage, int sigma, DCTBasisMode baseMode) throws Exception {
+
+        float THRESHOLD = 3f * sigma;
 
         // TODO: support 1 channel image
         int channel = 3;
 
-        float THRESHOLD = 3 * sigma;
-
         // DCT window size
         int width_p, height_p;
-        if (dct_size_flag == 0) {
-            width_p = 16;
-            height_p = 16;
-        } else {
-            width_p = 8;
-            height_p = 8;
+        switch (baseMode) {
+            case Mode16:
+                width_p = BASE16;
+                height_p = BASE16;
+                break;
+            case Mode8:
+                width_p = BASE8;
+                height_p = BASE8;
+                break;
+            default:
+                System.out.println("Unknown BaseMode");
+                throw new Exception("Unknown BaseMode Called");
         }
 
         // Get image dimensions
@@ -388,6 +396,8 @@ public class DCT {
 
         }
 
+        System.out.println("TYPE: " + originalImage.getType());
+
         Planar<GrayF32> preparedImg = new Planar<>(GrayF32.class, width, height, 3);
         ConvertBufferedImage.convertFrom(originalImage, preparedImg, true);
 
@@ -395,17 +405,10 @@ public class DCT {
 
         this.Image2Patches(decImage, patches, width_p, height_p);
 
-        // temporary
-        int flag_dct16x16 = 0;
-
         // 2D DCT forward
         for (int p = 0; p < num_patches; p ++) {
             for (int k = 0; k < channel; k ++) {
-                if (flag_dct16x16 == 0) {
-                    DCT2D.CalculateDCT2D(patches[p][k], 1);
-                } else {
-                    DCT2D.CalculateDCT2D(patches[p][k], 1);
-                }
+                DCT2D.CalculateDCT2D(patches[p][k], baseMode, TransformMode.FORWARD);
             }
         }
 
@@ -425,11 +428,7 @@ public class DCT {
         // 2D DCT inverse
         for (int p = 0; p < num_patches; p ++) {
             for (int k = 0; k < channel; k ++) {
-                if (flag_dct16x16 == 0) {
-                    DCT2D.CalculateDCT2D(patches[p][k], -1);
-                } else {
-                    DCT2D.CalculateDCT2D(patches[p][k], -1);
-                }
+                DCT2D.CalculateDCT2D(patches[p][k], baseMode, TransformMode.BACKWARD);
             }
         }
 

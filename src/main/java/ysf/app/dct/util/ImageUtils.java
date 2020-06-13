@@ -19,9 +19,10 @@ public class ImageUtils {
         return out;
     }
 
-    public String SaveBufImagePNG(BufferedImage img) throws IOException {
+    public String SaveBufImagePNG(BufferedImage img, String outputImageName) throws IOException {
         File pwd = new File("./output");
         File outfile = File.createTempFile("output_", ".png", pwd);
+//        System.out.println("GET NAME: " + outfile.getName());
         ImageIO.write(img, "PNG", outfile);
         String outpath = outfile.getAbsolutePath();
         System.out.println("Image output saved at: " + outpath);

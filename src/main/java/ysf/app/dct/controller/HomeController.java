@@ -18,6 +18,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import ysf.app.dct.lib.DCT;
+import ysf.app.dct.lib.DCTBasisMode;
 import ysf.app.dct.util.ImageUtils;
 
 @Controller
@@ -51,9 +52,20 @@ public class HomeController {
     }
 
     @PostMapping("/upload")
-    public String singleFileUpload(@RequestParam("file") MultipartFile uploadfile, RedirectAttributes redirectAttributes) {
+    public String singleFileUpload(@RequestParam("file") MultipartFile uploadfile, String sigma, RedirectAttributes redirectAttributes) {
         if (uploadfile.isEmpty()) {
             redirectAttributes.addFlashAttribute("message", "Please select a file to upload");
+            return "redirect:home";
+        }
+
+        int sigmaValue = 0;
+        try {
+            sigmaValue = Integer.parseInt(sigma);
+        }
+        catch (NumberFormatException e)
+        {
+            System.out.println("Error sigma not integer");
+            redirectAttributes.addFlashAttribute("message", "Sigma value should integer");
             return "redirect:home";
         }
 
@@ -64,24 +76,30 @@ public class HomeController {
             InputStream in = new ByteArrayInputStream(uploadfile.getBytes());
             BufferedImage originalImage = ImageIO.read(in);
 
-            outputImg = dct.DCTdenoising(originalImage);
+            outputImg = dct.DCTdenoising(originalImage, sigmaValue, DCTBasisMode.Mode16);
         }
         catch (IOException e) {
-            System.out.println("Exception when DCT process");
+            System.out.println("Error when try to save output");
+            e.printStackTrace();
+        } catch (Exception e) {
+            System.out.println("Exception happened at DCTdenoising");
             e.printStackTrace();
         }
 
+        String outputImageName = null;
         try {
-            String outpath = imgUtils.SaveBufImagePNG(outputImg);
-            redirectAttributes.addFlashAttribute("output_message","File output saved at '" + outpath + "'");
+            String fullOutputPath = imgUtils.SaveBufImagePNG(outputImg, outputImageName);
+            redirectAttributes.addFlashAttribute("output_message","File output saved at '" + fullOutputPath + "'");
         } catch (IOException e) {
             System.out.println("Failed save output image to file");
             e.printStackTrace();
         }
 
+        String uploadedName = null;
         try {
             byte[] bytes = uploadfile.getBytes();
-            String filePath = FULL_PATH + uploadfile.getOriginalFilename();
+            uploadedName = uploadfile.getOriginalFilename();
+            String filePath = FULL_PATH + uploadedName;
             Path path = Paths.get(filePath);
             Files.write(path, bytes);
 
@@ -89,6 +107,12 @@ public class HomeController {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+//        File output saved at '/Users/paulus.bangun/pbk/repo/expr/dct_prj/./output/output_18434341872020953707.png'
+//        File image uploaded '/Users/paulus.bangun/pbk/repo/expr/dct_prj/tmp/test_222.png'
+        redirectAttributes.addFlashAttribute("output_image_name",outputImageName);
+        redirectAttributes.addFlashAttribute("uploaded_name",FULL_PATH + uploadedName);
+
 
         return "redirect:/result";
     }
