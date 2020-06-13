@@ -70,7 +70,6 @@ public class HomeController {
         }
 
         BufferedImage outputImg = null;
-
         try {
             // Get a BufferedImage object from a byte array
             InputStream in = new ByteArrayInputStream(uploadfile.getBytes());

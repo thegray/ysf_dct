@@ -2,6 +2,7 @@ package ysf.app.dct.lib;
 
 import boofcv.io.image.ConvertBufferedImage;
 import boofcv.struct.image.GrayF32;
+import boofcv.struct.image.InterleavedF32;
 import boofcv.struct.image.Planar;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -28,25 +29,6 @@ public class DCT {
 
     public static final int BASE8 = 8;
     public static final int BASE16 = 16;
-
-    private static final float[][] DCTbasis3x3 =
-            {
-                    {
-                            0.5773502588272094726562500000000000000000f,
-                            0.5773502588272094726562500000000000000000f,
-                            0.5773502588272094726562500000000000000000f,
-                    },
-                    {
-                            0.7071067690849304199218750000000000000000f,
-                            0.0000000000000000000000000000000000000000f,
-                            -0.7071067690849304199218750000000000000000f,
-                    },
-                    {
-                            0.4082483053207397460937500000000000000000f,
-                            -0.8164966106414794921875000000000000000000f,
-                            0.4082483053207397460937500000000000000000f
-                    }
-            };
 
     /* ------------------------------------------------------------------ */
 
@@ -159,21 +141,6 @@ public class DCT {
 //                int a = c.getAlpha();
 //                System.out.println("getrgb: "+j+","+i+"("+r+","+g+","+b+")");
 
-                float or =
-                        (  r * DCTbasis3x3[0][0]
-                                + g * DCTbasis3x3[0][1]
-                                + b * DCTbasis3x3[0][2] );
-
-                float og =
-                        (  r * DCTbasis3x3[1][0]
-                                + g * DCTbasis3x3[1][1]
-                                + b * DCTbasis3x3[1][2] );
-
-                float ob =
-                        (  r * DCTbasis3x3[2][0]
-                                + g * DCTbasis3x3[2][1]
-                                + b * DCTbasis3x3[2][2] );
-
                 // fill the buffer
                 int idx_pixel0 = j * width + i;
                 int idx_pixel1 = 1 * size1 + j * width + i;
@@ -230,17 +197,14 @@ public class DCT {
 
     /* ------------------------------------------------------------------ */
 
-    public Planar<GrayF32> ColorTransform(Planar<GrayF32> preparedImg, int flag) {
-
-        if ((flag != 1) && (flag != -1)) {
-            System.out.println("[COLOR TRANSFORM] Flag should be 1 or -1");
-            return null;
-        }
+    public Planar<GrayF32> ColorTransform(Planar<GrayF32> preparedImg, TransformMode transformMode) {
 
         int w = preparedImg.getWidth();
         int h = preparedImg.getHeight();
 
         Planar<GrayF32> calcImg = new Planar<>(GrayF32.class, w, h, 3);
+
+        float[][] DCTbasis3x3 = DCTConst.getDCTbasis3();
 
         for (int r = 0; r < preparedImg.getHeight(); r++) {
             for (int c = 0; c < preparedImg.getWidth(); c++) {
@@ -248,7 +212,7 @@ public class DCT {
                 float temp_g = preparedImg.getBand(1).get(c, r);
                 float temp_b = preparedImg.getBand(2).get(c, r);
                 float temp_dr, temp_dg, temp_db;
-                if (flag == 1) {
+                if (transformMode == TransformMode.FORWARD) {
                     temp_dr = (temp_r * DCTbasis3x3[0][0]) + (temp_g * DCTbasis3x3[0][1]) + (temp_b * DCTbasis3x3[0][2]);
                     temp_dg = (temp_g * DCTbasis3x3[1][0]) + (temp_g * DCTbasis3x3[1][1]) + (temp_b * DCTbasis3x3[1][2]);
                     temp_db = (temp_b * DCTbasis3x3[2][0]) + (temp_g * DCTbasis3x3[2][1]) + (temp_b * DCTbasis3x3[2][2]);
@@ -352,6 +316,7 @@ public class DCT {
     public BufferedImage DCTdenoising(BufferedImage originalImage, int sigma, DCTBasisMode baseMode) throws Exception {
 
         float THRESHOLD = 3f * sigma;
+        int originalImageType = originalImage.getType();
 
         // TODO: support 1 channel image
         int channel = 3;
@@ -401,7 +366,7 @@ public class DCT {
         Planar<GrayF32> preparedImg = new Planar<>(GrayF32.class, width, height, 3);
         ConvertBufferedImage.convertFrom(originalImage, preparedImg, true);
 
-        Planar<GrayF32> decImage = this.ColorTransform(preparedImg, 1);
+        Planar<GrayF32> decImage = this.ColorTransform(preparedImg, TransformMode.FORWARD);
 
         this.Image2Patches(decImage, patches, width_p, height_p);
 
@@ -436,11 +401,11 @@ public class DCT {
         Planar<GrayF32> patches2ImageResult = this.Patches2Image(patches, width, height, channel, width_p, height_p);
 
         // inverse 3-point DCT transform in the color dimension
-        Planar<GrayF32> finalResult = this.ColorTransform(patches2ImageResult, -1);
+        Planar<GrayF32> finalResult = this.ColorTransform(patches2ImageResult, TransformMode.BACKWARD);
 
         // testing
 //        Planar<GrayF32> finalResult = this.ColorTransform(decImage, -1);
 
-        return imgUtils.PlanarToBufImage(finalResult);
+        return imgUtils.PlanarToBufImage(finalResult, originalImageType);
     }
 }
