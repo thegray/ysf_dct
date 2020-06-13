@@ -206,27 +206,38 @@ public class DCT {
 
         float[][] DCTbasis3x3 = DCTConst.getDCTbasis3();
 
-        for (int r = 0; r < preparedImg.getHeight(); r++) {
-            for (int c = 0; c < preparedImg.getWidth(); c++) {
-                float temp_r = preparedImg.getBand(0).get(c, r);
-                float temp_g = preparedImg.getBand(1).get(c, r);
-                float temp_b = preparedImg.getBand(2).get(c, r);
-                float temp_dr, temp_dg, temp_db;
+        for (int j = 0; j < h; j++) {
+            for (int i = 0; i < w; i++) {
+                float temp_r = preparedImg.getBand(0).get(i, j);
+                float temp_g = preparedImg.getBand(1).get(i, j);
+                float temp_b = preparedImg.getBand(2).get(i, j);
+
+                float calc_r, calc_g, calc_b;
                 if (transformMode == TransformMode.FORWARD) {
-                    temp_dr = (temp_r * DCTbasis3x3[0][0]) + (temp_g * DCTbasis3x3[0][1]) + (temp_b * DCTbasis3x3[0][2]);
-                    temp_dg = (temp_g * DCTbasis3x3[1][0]) + (temp_g * DCTbasis3x3[1][1]) + (temp_b * DCTbasis3x3[1][2]);
-                    temp_db = (temp_b * DCTbasis3x3[2][0]) + (temp_g * DCTbasis3x3[2][1]) + (temp_b * DCTbasis3x3[2][2]);
+                    calc_r = (temp_r * DCTbasis3x3[0][0]) + (temp_g * DCTbasis3x3[0][1]) + (temp_b * DCTbasis3x3[0][2]);
+                    calc_g = (temp_r * DCTbasis3x3[1][0]) + (temp_g * DCTbasis3x3[1][1]) + (temp_b * DCTbasis3x3[1][2]);
+                    calc_b = (temp_r * DCTbasis3x3[2][0]) + (temp_g * DCTbasis3x3[2][1]) + (temp_b * DCTbasis3x3[2][2]);
                 } else {
-                    temp_dr = (temp_r * DCTbasis3x3[0][0]) + (temp_g * DCTbasis3x3[1][0]) + (temp_b * DCTbasis3x3[2][0]);
-                    temp_dg = (temp_g * DCTbasis3x3[0][1]) + (temp_g * DCTbasis3x3[1][1]) + (temp_b * DCTbasis3x3[2][1]);
-                    temp_db = (temp_b * DCTbasis3x3[0][2]) + (temp_g * DCTbasis3x3[1][2]) + (temp_b * DCTbasis3x3[2][2]);
+                    calc_r = (temp_r * DCTbasis3x3[0][0]) + (temp_g * DCTbasis3x3[1][0]) + (temp_b * DCTbasis3x3[2][0]);
+                    calc_g = (temp_r * DCTbasis3x3[0][1]) + (temp_g * DCTbasis3x3[1][1]) + (temp_b * DCTbasis3x3[2][1]);
+                    calc_b = (temp_r * DCTbasis3x3[0][2]) + (temp_g * DCTbasis3x3[1][2]) + (temp_b * DCTbasis3x3[2][2]);
                 }
 
-                calcImg.getBand(0).set(c, r, temp_dr);
-                calcImg.getBand(1).set(c, r, temp_dg);
-                calcImg.getBand(2).set(c, r, temp_db);
+                calcImg.getBand(0).set(i, j, calc_r);
+                calcImg.getBand(1).set(i, j, calc_g);
+                calcImg.getBand(2).set(i, j, calc_b);
+
+//                if (temp_g < 1f && calc_g < 1f) {
+//                    System.out.println("G is under: " + i + ", " + j);
+//                }
+//                if (temp_b < 1f && calc_b < 1f) {
+//                    System.out.println("B is under: " + i + ", " + j);
+//                }
             }
         }
+
+//        System.out.println("Prep Image: "+ preparedImg.toString());
+//        System.out.println("Calc Image: "+ calcImg.toString());
 
         return calcImg;
     }
@@ -242,10 +253,10 @@ public class DCT {
         for (int j = 0; j < height - height_p + 1; j++) {
             for (int i = 0; i < width - width_p + 1; i++) {
                 // loop over each pixels in patch
-                for (int kp = 0; kp < channel; kp++) {
+                for (int cp = 0; cp < channel; cp++) {
                     for (int jp = 0; jp < height_p; jp++) {
                         for (int ip = 0; ip < width_p; ip++) {
-                            patches[counter_patch][kp][jp][ip] = decImg.getBand(kp).get(i + ip, j + jp);
+                            patches[counter_patch][cp][jp][ip] = decImg.getBand(cp).get(i + ip, j + jp);
                         }
                     }
                 }
@@ -262,7 +273,7 @@ public class DCT {
         // init the array
         for (int j = 0; j < height; j++) {
             for (int i = 0; i < width; i++) {
-                for (int c = 0; c < 3; c++) {
+                for (int c = 0; c < channel; c++) {
                     img.getBand(c).set(i, j, 0);
                     weight.getBand(c).set(i, j, 0);
                 }
@@ -293,16 +304,16 @@ public class DCT {
         } // end of patches loop
 
         // Normalize by the weight
-        for (int j = 0; j < height; j++) {
-            for (int i = 0; i < width; i++) {
-                for (int c = 0; c < 3; c++) {
-                    float temp = img.getBand(c).get(i, j);
-                    int div = (int) weight.getBand(c).get(i, j);
+        for (int jn = 0; jn < height; jn++) {
+            for (int in = 0; in < width; in++) {
+                for (int cn = 0; cn < channel; cn++) {
+                    float temp = img.getBand(cn).get(in, jn);
+                    int div = (int) weight.getBand(cn).get(in, jn);
                     if (div == 0) {
-                        System.out.printf("[Patches2Image][Normalization] DIVIDER IS ZERO c:%d x:%d y:%d \n", c, i, j);
+                        System.out.printf("[Patches2Image][Normalization] DIVIDER IS ZERO c:%d x:%d y:%d \n", cn, in, jn);
                     } else {
                         float res = temp / div;
-                        img.getBand(c).set(i, j, res);
+                        img.getBand(cn).set(in, jn, res);
                     }
                 }
             }
@@ -361,22 +372,40 @@ public class DCT {
 
         }
 
-        System.out.println("TYPE: " + originalImage.getType());
-
         Planar<GrayF32> preparedImg = new Planar<>(GrayF32.class, width, height, 3);
         ConvertBufferedImage.convertFrom(originalImage, preparedImg, true);
 
+        long startTime = System.nanoTime();
+        // color transform forward
         Planar<GrayF32> decImage = this.ColorTransform(preparedImg, TransformMode.FORWARD);
+        long endTime = System.nanoTime();
+        long duration = (endTime - startTime);
+        double seconds = (double)duration / 1_000_000_000.0;
+        System.out.printf("Colortransform forward: %.4f s\n", seconds);
 
+
+        startTime = System.nanoTime();
+        // image to patches
         this.Image2Patches(decImage, patches, width_p, height_p);
+        endTime = System.nanoTime();
+        duration = (endTime - startTime);
+        seconds = (double)duration / 1_000_000_000.0;
+        System.out.printf("Image2Patches: %.4f s\n", seconds);
 
+
+        startTime = System.nanoTime();
         // 2D DCT forward
         for (int p = 0; p < num_patches; p ++) {
             for (int k = 0; k < channel; k ++) {
-                DCT2D.CalculateDCT2D(patches[p][k], baseMode, TransformMode.FORWARD);
+                DCT2D.Calculate(patches[p][k], baseMode, TransformMode.FORWARD);
             }
         }
+        endTime = System.nanoTime();
+        duration = (endTime - startTime);
+        seconds = (double)duration / 1_000_000_000.0;
+        System.out.printf("DCT Calc forward: %.4f s\n", seconds);
 
+        startTime = System.nanoTime();
         // Thresholding
         for (int p = 0; p < num_patches; p ++) {
             for (int k = 0; k < channel; k++) {
@@ -389,23 +418,86 @@ public class DCT {
                 }
             }
         } // end of thresholding loop
+        endTime = System.nanoTime();
+        duration = (endTime - startTime);
+        seconds = (double)duration / 1_000_000_000.0;
+        System.out.printf("Thresholding: %.4f s\n", seconds);
 
+        startTime = System.nanoTime();
         // 2D DCT inverse
         for (int p = 0; p < num_patches; p ++) {
             for (int k = 0; k < channel; k ++) {
-                DCT2D.CalculateDCT2D(patches[p][k], baseMode, TransformMode.BACKWARD);
+                DCT2D.Calculate(patches[p][k], baseMode, TransformMode.BACKWARD);
             }
         }
+        endTime = System.nanoTime();
+        duration = (endTime - startTime);
+        seconds = (double)duration / 1_000_000_000.0;
+        System.out.printf("DCT calc inverse: %.4f s\n", seconds);
 
+        startTime = System.nanoTime();
         // Decompose the image into patches
         Planar<GrayF32> patches2ImageResult = this.Patches2Image(patches, width, height, channel, width_p, height_p);
+        endTime = System.nanoTime();
+        duration = (endTime - startTime);
+        seconds = (double)duration / 1_000_000_000.0;
+        System.out.printf("Patches2Image: %.4f s\n", seconds);
 
+        startTime = System.nanoTime();
         // inverse 3-point DCT transform in the color dimension
         Planar<GrayF32> finalResult = this.ColorTransform(patches2ImageResult, TransformMode.BACKWARD);
+        endTime = System.nanoTime();
+        duration = (endTime - startTime);
+        seconds = (double)duration / 1_000_000_000.0;
+        System.out.printf("Color trans inverse: %.4f s\n", seconds);
 
         // testing
-//        Planar<GrayF32> finalResult = this.ColorTransform(decImage, -1);
+//        Planar<GrayF32> finalResult = this.ColorTransform(decImage, TransformMode.BACKWARD);
+
+        // debug
+        startTime = System.nanoTime();
+        this.debugFunc(finalResult);
+        endTime = System.nanoTime();
+        duration = (endTime - startTime);
+        seconds = (double)duration / 1_000_000_000.0;
+        System.out.printf("Debug: %.4f s\n", seconds);
 
         return imgUtils.PlanarToBufImage(finalResult, originalImageType);
     }
+
+    private void debugFunc(Planar<GrayF32> in) throws IOException {
+        // function to split each band of a planar object and save each splat bands to images
+        Planar<GrayF32> b0 = new Planar<>(GrayF32.class, in.getWidth(), in.getHeight(), in.getNumBands());
+        Planar<GrayF32> b1 = new Planar<>(GrayF32.class, in.getWidth(), in.getHeight(), in.getNumBands());
+        Planar<GrayF32> b2 = new Planar<>(GrayF32.class, in.getWidth(), in.getHeight(), in.getNumBands());
+        for (int j = 0; j < in.getHeight(); j++) {
+            for (int i = 0; i < in.getWidth(); i++) {
+                float temp0 = in.getBand(0).get(i, j);
+                float temp1 = in.getBand(1).get(i, j);
+                float temp2 = in.getBand(2).get(i, j);
+
+                b0.getBand(0).set(i, j, temp0);
+                b0.getBand(1).set(i, j, 0f);
+                b0.getBand(2).set(i, j, 0f);
+
+                b1.getBand(0).set(i, j, 0f);
+                b1.getBand(1).set(i, j, temp1);
+                b1.getBand(2).set(i, j, 0f);
+
+                b2.getBand(0).set(i, j, 0f);
+                b2.getBand(1).set(i, j, 0f);
+                b2.getBand(2).set(i, j, temp2);
+            }
+        }
+
+        BufferedImage i0 = imgUtils.PlanarToBufImage(b0, 5);
+        BufferedImage i1 = imgUtils.PlanarToBufImage(b1, 5);
+        BufferedImage i2 = imgUtils.PlanarToBufImage(b2, 5);
+
+        imgUtils.SaveBufImage(i0, "Debug");
+        imgUtils.SaveBufImage(i1, "Debug");
+        imgUtils.SaveBufImage(i2, "Debug");
+    }
 }
+
+

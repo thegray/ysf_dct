@@ -20,13 +20,13 @@ public class ImageUtils {
         return out;
     }
 
-    public String SaveBufImagePNG(BufferedImage img, String outputImageName) throws IOException {
+    public String SaveBufImage(BufferedImage img, String prefix) throws IOException {
         File pwd = new File("./output");
-        File outfile = File.createTempFile("output_", ".jpg", pwd);
+        File outfile = File.createTempFile(prefix, ".jpg", pwd);
 //        System.out.println("GET NAME: " + outfile.getName());
         ImageIO.write(img, "JPG", outfile);
         String outpath = outfile.getAbsolutePath();
-        System.out.println("Image output saved at: " + outpath);
+        System.out.println("Image saved at: " + outpath);
         return outpath;
     }
 }

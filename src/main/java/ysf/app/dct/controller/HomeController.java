@@ -76,8 +76,7 @@ public class HomeController {
             BufferedImage originalImage = ImageIO.read(in);
 
             outputImg = dct.DCTdenoising(originalImage, sigmaValue, DCTBasisMode.Mode16);
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             System.out.println("Error when try to save output");
             e.printStackTrace();
         } catch (Exception e) {
@@ -85,9 +84,8 @@ public class HomeController {
             e.printStackTrace();
         }
 
-        String outputImageName = null;
         try {
-            String fullOutputPath = imgUtils.SaveBufImagePNG(outputImg, outputImageName);
+            String fullOutputPath = imgUtils.SaveBufImage(outputImg, "DCT_RESULT");
             redirectAttributes.addFlashAttribute("output_message","File output saved at '" + fullOutputPath + "'");
         } catch (IOException e) {
             System.out.println("Failed save output image to file");
@@ -109,8 +107,8 @@ public class HomeController {
 
 //        File output saved at '/Users/paulus.bangun/pbk/repo/expr/dct_prj/./output/output_18434341872020953707.png'
 //        File image uploaded '/Users/paulus.bangun/pbk/repo/expr/dct_prj/tmp/test_222.png'
-        redirectAttributes.addFlashAttribute("output_image_name",outputImageName);
-        redirectAttributes.addFlashAttribute("uploaded_name",FULL_PATH + uploadedName);
+//        redirectAttributes.addFlashAttribute("output_image_name",outputImageName);
+//        redirectAttributes.addFlashAttribute("uploaded_name",FULL_PATH + uploadedName);
 
 
         return "redirect:/result";

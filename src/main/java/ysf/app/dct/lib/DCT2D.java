@@ -26,7 +26,7 @@ public class DCT2D {
         }
     }
 
-    public static void CalculateDCT2D(float[][] patch, DCTBasisMode baseMode, TransformMode mode) throws Exception {
+    public static void Calculate(float[][] patch, DCTBasisMode baseMode, TransformMode mode) throws Exception {
         int PATCHSIZE = 0;
         float[][] DCTBASIS;
         switch (baseMode) {
