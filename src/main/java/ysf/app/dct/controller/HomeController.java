@@ -19,16 +19,22 @@ import java.nio.file.Paths;
 
 import ysf.app.dct.lib.DCT;
 import ysf.app.dct.lib.DCTBasisMode;
+import ysf.app.dct.lib.PSNR;
 import ysf.app.dct.util.ImageUtils;
 
 @Controller
 public class HomeController {
 
-    @Autowired
     ImageUtils imgUtils;
+    DCT dct;
+    PSNR psnr;
 
     @Autowired
-    DCT dct;
+    public HomeController(ImageUtils imgUtils, DCT dct, PSNR psnr) {
+        this.imgUtils = imgUtils;
+        this.dct = dct;
+        this.psnr = psnr;
+    }
 
     private static String UPLOADED_FOLDER = "/tmp/";
     private static String FULL_PATH;
@@ -69,11 +75,12 @@ public class HomeController {
             return "redirect:home";
         }
 
+        BufferedImage originalImage = null;
         BufferedImage outputImg = null;
         try {
             // Get a BufferedImage object from a byte array
             InputStream in = new ByteArrayInputStream(uploadfile.getBytes());
-            BufferedImage originalImage = ImageIO.read(in);
+            originalImage = ImageIO.read(in);
 
             outputImg = dct.DCTdenoising(originalImage, sigmaValue, DCTBasisMode.Mode16);
         } catch (IOException e) {
@@ -83,6 +90,11 @@ public class HomeController {
             System.out.println("Exception happened at DCTdenoising");
             e.printStackTrace();
         }
+
+        // calculate psnr
+        double psnrValue = psnr.Calculate(originalImage, outputImg);
+        System.out.println("PSNR VALUE : "+ psnrValue);
+        redirectAttributes.addFlashAttribute("psnr_value","PSNR Value : " + psnrValue);
 
         try {
             String fullOutputPath = imgUtils.SaveBufImage(outputImg, "DCT_RESULT");

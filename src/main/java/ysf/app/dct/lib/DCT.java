@@ -22,10 +22,12 @@ import java.util.Random;
 @Service
 public class DCT {
 
-    @Autowired
     ImageUtils imgUtils;
 
-    public static final double PI = 3.1415926535897931;
+    @Autowired
+    public DCT(ImageUtils imgUtils) {
+        this.imgUtils = imgUtils;
+    }
 
     public static final int BASE8 = 8;
     public static final int BASE16 = 16;
@@ -226,18 +228,8 @@ public class DCT {
                 calcImg.getBand(0).set(i, j, calc_r);
                 calcImg.getBand(1).set(i, j, calc_g);
                 calcImg.getBand(2).set(i, j, calc_b);
-
-//                if (temp_g < 1f && calc_g < 1f) {
-//                    System.out.println("G is under: " + i + ", " + j);
-//                }
-//                if (temp_b < 1f && calc_b < 1f) {
-//                    System.out.println("B is under: " + i + ", " + j);
-//                }
             }
         }
-
-//        System.out.println("Prep Image: "+ preparedImg.toString());
-//        System.out.println("Calc Image: "+ calcImg.toString());
 
         return calcImg;
     }
@@ -322,6 +314,20 @@ public class DCT {
         return img;
     }
 
+    private void Thresholding(float[][][][] patches, int num_patches, int channel, int height_p, int width_p, float threshold) {
+        for (int p = 0; p < num_patches; p ++) {
+            for (int k = 0; k < channel; k++) {
+                for (int j = 0; j < height_p; j++) {
+                    for (int i = 0; i < width_p; i++) {
+                        if (Math.abs(patches[p][k][j][i]) < threshold) {
+                            patches[p][k][j][i] = 0;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     /* ------------------------------------- MAIN DCT FUNCTION ------------------------------------------- */
 
     public BufferedImage DCTdenoising(BufferedImage originalImage, int sigma, DCTBasisMode baseMode) throws Exception {
@@ -354,18 +360,7 @@ public class DCT {
 
         int num_patches = (width - width_p + 1) * (height - height_p + 1);
 
-//        float[][][][] patches = new float[num_patches][][][];
-//        for (int p = 0; p < num_patches; p++) {
-//            patches[p] = new float[channel][][];
-//            for (int c = 0; c < channel; c++) {
-//                patches[p][c] = new float[height_p][];
-//                for (int h = 0; h < height_p; h++) {
-//                    patches[p][c][h] = new float[width_p];
-//                }
-//            }
-//        }
         float[][][][] patches = new float[num_patches][channel][height_p][width_p];
-//        System.out.println(Arrays.toString(patches));
 
         // TODO: support 1 channel image
         if (channel == 3) {
@@ -407,17 +402,8 @@ public class DCT {
 
         startTime = System.nanoTime();
         // Thresholding
-        for (int p = 0; p < num_patches; p ++) {
-            for (int k = 0; k < channel; k++) {
-                for (int j = 0; j < height_p; j++) {
-                    for (int i = 0; i < width_p; i++) {
-                        if (Math.abs(patches[p][k][j][i]) < THRESHOLD) {
-                            patches[p][k][j][i] = 0;
-                        }
-                    }
-                }
-            }
-        } // end of thresholding loop
+        this.Thresholding(patches, num_patches, channel, height_p, width_p, THRESHOLD);
+        //
         endTime = System.nanoTime();
         duration = (endTime - startTime);
         seconds = (double)duration / 1_000_000_000.0;
@@ -451,16 +437,13 @@ public class DCT {
         seconds = (double)duration / 1_000_000_000.0;
         System.out.printf("Color trans inverse: %.4f s\n", seconds);
 
-        // testing
-//        Planar<GrayF32> finalResult = this.ColorTransform(decImage, TransformMode.BACKWARD);
-
         // debug
-        startTime = System.nanoTime();
-        this.debugFunc(finalResult);
-        endTime = System.nanoTime();
-        duration = (endTime - startTime);
-        seconds = (double)duration / 1_000_000_000.0;
-        System.out.printf("Debug: %.4f s\n", seconds);
+//        startTime = System.nanoTime();
+//        this.debugFunc(finalResult);
+//        endTime = System.nanoTime();
+//        duration = (endTime - startTime);
+//        seconds = (double)duration / 1_000_000_000.0;
+//        System.out.printf("Debug: %.4f s\n", seconds);
 
         return imgUtils.PlanarToBufImage(finalResult, originalImageType);
     }
