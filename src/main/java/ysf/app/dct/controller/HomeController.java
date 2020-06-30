@@ -11,6 +11,7 @@ import javax.annotation.PostConstruct;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -21,29 +22,29 @@ import ysf.app.dct.lib.DCT;
 import ysf.app.dct.lib.DCTBasisMode;
 import ysf.app.dct.lib.PSNR;
 import ysf.app.dct.util.ImageUtils;
+import ysf.app.dct.util.StorageUtil;
 
 @Controller
 public class HomeController {
 
     ImageUtils imgUtils;
+    StorageUtil strgUtil;
     DCT dct;
     PSNR psnr;
 
     @Autowired
-    public HomeController(ImageUtils imgUtils, DCT dct, PSNR psnr) {
+    public HomeController(ImageUtils imgUtils, DCT dct, PSNR psnr, StorageUtil strgUtil) {
         this.imgUtils = imgUtils;
         this.dct = dct;
         this.psnr = psnr;
+        this.strgUtil = strgUtil;
     }
 
-    private static String UPLOADED_FOLDER = "/tmp/";
-    private static String FULL_PATH;
-
-    @PostConstruct
-    public void initialize() {
-        this.FULL_PATH = Paths.get("").toAbsolutePath().toString() + UPLOADED_FOLDER;
-//        System.out.println("FULL PATH: " + FULL_PATH);
-    }
+//    @PostConstruct
+//    public void initialize() {
+//        this.FULL_PATH = Paths.get("").toAbsolutePath().toString() + UPLOADED_FOLDER;
+////        System.out.println("FULL PATH: " + FULL_PATH);
+//    }
 
     @RequestMapping(value={"", "/", "home"}, method = RequestMethod.GET)
     public String main(@RequestParam(name="name", required=false, defaultValue="World") String name, Model model) {
@@ -96,9 +97,10 @@ public class HomeController {
         System.out.println("PSNR VALUE : "+ psnrValue);
         redirectAttributes.addFlashAttribute("psnr_value","PSNR Value : " + psnrValue);
 
+        File fileOutput = null;
         try {
-            String fullOutputPath = imgUtils.SaveBufImage(outputImg, "DCT_RESULT");
-            redirectAttributes.addFlashAttribute("output_message","File output saved at '" + fullOutputPath + "'");
+            fileOutput = imgUtils.SaveBufImage(outputImg, "DCT_RESULT", "results");
+            redirectAttributes.addFlashAttribute("output_message","File output saved at '" + fileOutput.getAbsolutePath() + "'");
         } catch (IOException e) {
             System.out.println("Failed save output image to file");
             e.printStackTrace();
@@ -108,7 +110,7 @@ public class HomeController {
         try {
             byte[] bytes = uploadfile.getBytes();
             uploadedName = uploadfile.getOriginalFilename();
-            String filePath = FULL_PATH + uploadedName;
+            String filePath = strgUtil.getUploadsPath() + "/" + uploadedName;
             Path path = Paths.get(filePath);
             Files.write(path, bytes);
 
@@ -119,9 +121,9 @@ public class HomeController {
 
 //        File output saved at '/Users/paulus.bangun/pbk/repo/expr/dct_prj/./output/output_18434341872020953707.png'
 //        File image uploaded '/Users/paulus.bangun/pbk/repo/expr/dct_prj/tmp/test_222.png'
-//        redirectAttributes.addFlashAttribute("output_image_name",outputImageName);
-//        redirectAttributes.addFlashAttribute("uploaded_name",FULL_PATH + uploadedName);
+        redirectAttributes.addFlashAttribute("uploaded_name","uploads/" + uploadedName);
 
+        redirectAttributes.addFlashAttribute("output_image_name", "results/" + fileOutput.getName());
 
         return "redirect:/result";
     }

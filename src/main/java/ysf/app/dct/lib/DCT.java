@@ -477,9 +477,9 @@ public class DCT {
         BufferedImage i1 = imgUtils.PlanarToBufImage(b1, 5);
         BufferedImage i2 = imgUtils.PlanarToBufImage(b2, 5);
 
-        imgUtils.SaveBufImage(i0, "Debug");
-        imgUtils.SaveBufImage(i1, "Debug");
-        imgUtils.SaveBufImage(i2, "Debug");
+        imgUtils.SaveBufImage(i0, "Debug", "uploads");
+        imgUtils.SaveBufImage(i1, "Debug", "uploads");
+        imgUtils.SaveBufImage(i2, "Debug", "uploads");
     }
 }
 

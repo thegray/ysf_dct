@@ -71,10 +71,11 @@
                 <strong class="d-inline-block text-info">Source</strong>
             </div>
             <div class="col d-none d-lg-block mb-3 w-100">
-                <img th:src="@{/tmp/img1.jpg}" class="img-fluid" alt="Surreal">
+<!--                <img th:src="@{/tmp/img1.jpg}" class="img-fluid" alt="Surreal">-->
+                <img th:src="${uploaded_name}" class="img-fluid" alt="original">
            </div>
-            <div class="mb-2 text-muted">Nov 12</div>
-            <p class="card-text mb-3">This is a wider card with supporting text below as a natural lead-in to additional content.</p>
+<!--            <div class="mb-2 text-muted">Nov 12</div>-->
+            <p class="card-text mb-3">Original image.</p>
         </div>
 
         <div class="col-md-6 border rounded flex-md-row mb-3 shadow-sm position-relative">
@@ -83,10 +84,11 @@
             </div>
             <div class="col d-none d-lg-block mb-3 w-100">
 <!--                <img th:src="@{/tmp/} + ${uploaded_name}" class="img-fluid" alt="Surreal">-->
-                <img th:src="@{/tmp/img1.jpg}" class="img-fluid" alt="Surreal">
+<!--                <img th:src="@{/tmp/img1.jpg}" class="img-fluid" alt="Surreal">-->
+                <img th:src="${output_image_name}" class="img-fluid" alt="result">
             </div>
-            <div class="mb-2 text-muted">Nov 12</div>
-            <p class="card-text mb-3">This is a wider card with supporting text below as a natural lead-in to additional content.</p>
+<!--            <div class="mb-2 text-muted">Nov 12</div>-->
+            <p class="card-text mb-3">Image after DCT.</p>
         </div>
 
 <!--        <div class="col-md-6">-->
