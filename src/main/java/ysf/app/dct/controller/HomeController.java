@@ -1,5 +1,8 @@
 package ysf.app.dct.controller;
 
+import boofcv.io.image.ConvertBufferedImage;
+import boofcv.struct.image.GrayF32;
+import boofcv.struct.image.Planar;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -7,7 +10,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import javax.annotation.PostConstruct;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
@@ -54,7 +56,7 @@ public class HomeController {
 
     @GetMapping("/exetest")
     public String exeTest() {
-        dct.funcTest();
+        System.out.println("exetest");
         return "home";
     }
 
@@ -76,36 +78,6 @@ public class HomeController {
             return "redirect:home";
         }
 
-        BufferedImage originalImage = null;
-        BufferedImage outputImg = null;
-        try {
-            // Get a BufferedImage object from a byte array
-            InputStream in = new ByteArrayInputStream(uploadfile.getBytes());
-            originalImage = ImageIO.read(in);
-
-            outputImg = dct.DCTdenoising(originalImage, sigmaValue, DCTBasisMode.Mode16);
-        } catch (IOException e) {
-            System.out.println("Error when try to save output");
-            e.printStackTrace();
-        } catch (Exception e) {
-            System.out.println("Exception happened at DCTdenoising");
-            e.printStackTrace();
-        }
-
-        // calculate psnr
-        double psnrValue = psnr.Calculate(originalImage, outputImg);
-        System.out.println("PSNR VALUE : "+ psnrValue);
-        redirectAttributes.addFlashAttribute("psnr_value","PSNR Value : " + psnrValue);
-
-        File fileOutput = null;
-        try {
-            fileOutput = imgUtils.SaveBufImage(outputImg, "DCT_RESULT", "results");
-            redirectAttributes.addFlashAttribute("output_message","File output saved at '" + fileOutput.getAbsolutePath() + "'");
-        } catch (IOException e) {
-            System.out.println("Failed save output image to file");
-            e.printStackTrace();
-        }
-
         String uploadedName = null;
         try {
             byte[] bytes = uploadfile.getBytes();
@@ -116,6 +88,54 @@ public class HomeController {
 
             redirectAttributes.addFlashAttribute("upload_message","File image uploaded '" + filePath + "'");
         } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        BufferedImage originalImage = null;
+//        BufferedImage outputImg = null;
+        Planar<GrayF32> preparedImg = null;
+        Planar<GrayF32> resultImg = null;
+        int height = 0;
+        int width = 0;
+        int imgType = 0;
+        try {
+            // Get a BufferedImage object from a byte array
+            InputStream in = new ByteArrayInputStream(uploadfile.getBytes());
+            originalImage = ImageIO.read(in);
+
+            height = originalImage.getHeight();
+            width = originalImage.getWidth();
+            imgType = originalImage.getType();
+
+            preparedImg = new Planar<>(GrayF32.class, width, height, 3);
+            ConvertBufferedImage.convertFrom(originalImage, preparedImg, true);
+
+            uploadfile = null;
+            originalImage = null;
+            System.gc();
+
+            resultImg = dct.DCTdenoising(preparedImg, sigmaValue, DCTBasisMode.Mode16, height, width, imgType);
+        } catch (IOException e) {
+            System.out.println("Error when try to save output");
+            e.printStackTrace();
+        } catch (Exception e) {
+            System.out.println("Exception happened at DCTdenoising");
+            e.printStackTrace();
+        }
+
+        // calculate psnr
+        double psnrValue = psnr.Calculate(preparedImg, resultImg, height, width);
+        System.out.println("PSNR VALUE : "+ psnrValue);
+        redirectAttributes.addFlashAttribute("psnr_value","PSNR Value : " + psnrValue);
+
+        File fileOutput = null;
+        try {
+            BufferedImage outputImg = imgUtils.PlanarToBufImage(resultImg, imgType);
+
+            fileOutput = imgUtils.SaveBufImage(outputImg, "DCT_RESULT", "results");
+            redirectAttributes.addFlashAttribute("output_message","File output saved at '" + fileOutput.getAbsolutePath() + "'");
+        } catch (IOException e) {
+            System.out.println("Failed save output image to file");
             e.printStackTrace();
         }
 

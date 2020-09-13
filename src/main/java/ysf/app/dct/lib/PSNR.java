@@ -11,16 +11,16 @@ import java.awt.image.BufferedImage;
 @Service
 public class PSNR {
 
-    public double Calculate(BufferedImage original, BufferedImage compressed) {
+    public double Calculate(Planar<GrayF32> oriImg, Planar<GrayF32> compImg, int height, int width) {
 
-        int height = original.getHeight();
-        int width = original.getWidth();
+//        int height = original.getHeight();
+//        int width = original.getWidth();
 
-        Planar<GrayF32> oriImg = new Planar<>(GrayF32.class, width, height, 3);
-        ConvertBufferedImage.convertFrom(original, oriImg, true);
+//        Planar<GrayF32> oriImg = new Planar<>(GrayF32.class, width, height, 3);
+//        ConvertBufferedImage.convertFrom(original, oriImg, true);
 
-        Planar<GrayF32> compImg = new Planar<>(GrayF32.class, width, height, 3);
-        ConvertBufferedImage.convertFrom(compressed, compImg, true);
+//        Planar<GrayF32> compImg = new Planar<>(GrayF32.class, width, height, 3);
+//        ConvertBufferedImage.convertFrom(compressed, compImg, true);
 
         double mse = meanDiffSq(oriImg, compImg);
 

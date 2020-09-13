@@ -2,7 +2,6 @@ package ysf.app.dct.lib;
 
 import boofcv.io.image.ConvertBufferedImage;
 import boofcv.struct.image.GrayF32;
-import boofcv.struct.image.InterleavedF32;
 import boofcv.struct.image.Planar;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -330,10 +329,10 @@ public class DCT {
 
     /* ------------------------------------- MAIN DCT FUNCTION ------------------------------------------- */
 
-    public BufferedImage DCTdenoising(BufferedImage originalImage, int sigma, DCTBasisMode baseMode) throws Exception {
+    public Planar<GrayF32> DCTdenoising(Planar<GrayF32> preparedImg, int sigma, DCTBasisMode baseMode, int height, int width, int imgType) throws Exception {
 
         float THRESHOLD = 3f * sigma;
-        int originalImageType = originalImage.getType();
+//        int originalImageType = originalImage.getType();
 
         // TODO: support 1 channel image
         int channel = 3;
@@ -355,8 +354,8 @@ public class DCT {
         }
 
         // Get image dimensions
-        int height = originalImage.getHeight();
-        int width = originalImage.getWidth();
+//        int height = originalImage.getHeight();
+//        int width = originalImage.getWidth();
 
         int num_patches = (width - width_p + 1) * (height - height_p + 1);
 
@@ -367,8 +366,8 @@ public class DCT {
 
         }
 
-        Planar<GrayF32> preparedImg = new Planar<>(GrayF32.class, width, height, 3);
-        ConvertBufferedImage.convertFrom(originalImage, preparedImg, true);
+//        Planar<GrayF32> preparedImg = new Planar<>(GrayF32.class, width, height, 3);
+//        ConvertBufferedImage.convertFrom(originalImage, preparedImg, true);
 
         long startTime = System.nanoTime();
         // color transform forward
@@ -377,7 +376,6 @@ public class DCT {
         long duration = (endTime - startTime);
         double seconds = (double)duration / 1_000_000_000.0;
         System.out.printf("Colortransform forward: %.4f s\n", seconds);
-
 
         startTime = System.nanoTime();
         // image to patches
@@ -445,7 +443,8 @@ public class DCT {
 //        seconds = (double)duration / 1_000_000_000.0;
 //        System.out.printf("Debug: %.4f s\n", seconds);
 
-        return imgUtils.PlanarToBufImage(finalResult, originalImageType);
+//        return imgUtils.PlanarToBufImage(finalResult, imgType);
+        return finalResult;
     }
 
     private void debugFunc(Planar<GrayF32> in) throws IOException {
